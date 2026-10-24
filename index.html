@@ -9,7 +9,7 @@
   :root{
     --bg:#f1f5f9; --card:#ffffff; --ink:#0f172a; --sub:#64748b;
     --line:#e2e8f0; --accent:#0e7490; --accent-d:#155e75;
-    --ok:#15803d; --warn:#b45309; --bad:#b91c1c;
+    --ok:#15803d; --warn:#ca8a04; --bad:#dc2626;
   }
   body{
     background:var(--bg); color:var(--ink);
@@ -109,6 +109,7 @@
   .use-sub{font-size:11px;color:var(--sub);margin-top:2px;}
   .use-val{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;}
 
+  /* 黄、绿、红 颜色定义 */
   .status-yellow{color:#ca8a04;}
   .status-green{color:#16a34a;}
   .status-red{color:#dc2626;}
@@ -446,9 +447,28 @@
 
     if(wcap>0){
       var use = vol/wcap*100;
-      var statusClass = use<30?'status-yellow':(use<=70?'status-green':'status-red');
+      var statusClass = '';
       var useStr = use.toFixed(1) + '%';
-      var alertText = use<30?'利用率偏低（<30%）：易降解/黄变':(use<=70?'利用率合理（30%–70%）：最佳黄金区间':'利用率偏高（>70%）：机器接近上限');
+      var alertText = '';
+
+      if(use < 30){
+        // 低于30% -> 黄色
+        statusClass = 'status-yellow';
+        alertText = '利用率偏低（<30%）：熔体停留时间长，易降解/黄变，建议换小机台';
+      } else if(use <= 70){
+        // 30% 到 70% -> 绿色
+        statusClass = 'status-green';
+        alertText = '利用率合理（30%–70%）：处于最佳黄金推荐区间';
+      } else if(use <= 100){
+        // 70% 到 100% -> 红色
+        statusClass = 'status-red';
+        alertText = '利用率偏高（>70%）：机器接近上限，建议加大机台或减腔';
+      } else {
+        // 超过100% -> 红色，提示已超过机器极限
+        statusClass = 'status-red';
+        useStr += ' 已超过机器极限';
+        alertText = '已超过机器极限（>100%）：射胶量超出机台额定容积，严禁生产！';
+      }
 
       var oUseEl = document.getElementById('oUse');
       oUseEl.className = 'use-val ' + statusClass;
@@ -456,20 +476,28 @@
 
       var oUseInlineEl = document.getElementById('oUseInline');
       oUseInlineEl.className = 'v ' + statusClass;
-      oUseInlineEl.textContent = useStr;
+      oUseInlineEl.textContent = use.toFixed(1) + (use > 100 ? '%' : '%');
 
-      document.getElementById('useSub').textContent = '推荐区间: 30% – 70%';
-      document.getElementById('gauge').style.display = 'block';
-      document.getElementById('marker').style.left = Math.min(use,100)+'%';
+      document.getElementById('useSub').textContent = '推荐区间: 30% – 70% | 评估结果';
+      
+      var g = document.getElementById('gauge');
+      g.style.display = 'block';
+      var marker = document.getElementById('marker');
+      var pos = Math.min(use, 100);
+      marker.style.left = pos + '%';
       var mt = document.getElementById('mtext');
-      mt.style.color = use<30?'var(--warn)':(use<=70?'var(--ok)':'var(--bad)');
+      mt.style.color = use < 30 ? 'var(--warn)' : (use <= 70 ? 'var(--ok)' : 'var(--bad)');
       mt.textContent = alertText;
     } else {
-      document.getElementById('oUse').className = 'use-val';
-      document.getElementById('oUse').textContent = '—';
-      document.getElementById('oUseInline').className = 'v';
-      document.getElementById('oUseInline').textContent = '—';
-      document.getElementById('useSub').textContent = '填入机台额定射胶容积后计算';
+      var oUseEl = document.getElementById('oUse');
+      oUseEl.className = 'use-val';
+      oUseEl.textContent = '—';
+
+      var oUseInlineEl = document.getElementById('oUseInline');
+      oUseInlineEl.className = 'v';
+      oUseInlineEl.textContent = '—';
+
+      document.getElementById('useSub').textContent = '填入上方“机台额定射胶容积”后自动计算';
       document.getElementById('gauge').style.display = 'none';
     }
   }
@@ -591,7 +619,7 @@ function genPdfReport(){
   ctx.strokeStyle='#e8ecf1';ctx.lineWidth=2;ctx.strokeRect(X,y,CW,96);
   ctx.fillStyle='#555';ctx.font='400 25px '+f;
   ctx.textBaseline='top';
-  wrapText(ctx,'评估说明：黄金利用率区间为 30%–70%，请结合上述推荐机台射胶容积及螺杆直径合理匹配设备。',X+24,y+18,CW-48,34,2);
+  wrapText(ctx,'评估说明：黄金利用率区间为 30%–70%，低于30%为黄色偏低，高于70%至100%为红色偏高，超过100%为超极限。',X+24,y+18,CW-48,34,2);
   
   var fy=y+96+50;
   ctx.fillStyle='#8a8f98';ctx.font='400 24px '+f;
