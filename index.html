@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>注塑材料熔融密度速查与注塑机选型计算器</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --bg:#f1f5f9; --card:#ffffff; --ink:#0f172a; --sub:#64748b;
+    --line:#e2e8f0; --accent:#0e7490; --accent-d:#155e75;
+    --ok:#15803d; --warn:#b45309; --bad:#b91c1c;
+  }
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+    font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  }
+  .top{
+    background:linear-gradient(180deg,#0c4a5e 0%,#0e7490 100%);
+    color:#fff; padding:18px 16px 16px;
+  }
+  .top h1{font-size:19px;font-weight:700;letter-spacing:.5px;}
+  .top p{font-size:12px;opacity:.85;margin-top:4px;}
+  .wrap{max-width:880px;margin:0 auto;padding:14px 12px 40px;}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    padding:14px;margin-top:12px;
+  }
+  .card h2{
+    font-size:15px;color:var(--accent-d);margin-bottom:10px;
+    display:flex;align-items:center;justify-content:space-between;cursor:pointer;
+  }
+  .card h2 .tag{font-size:11px;font-weight:400;color:var(--sub);}
+  .toggle-btn{font-size:12px;color:var(--accent);font-weight:600;user-select:none;}
+
+  .search-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .search-row select, .search-row input{
+    padding:9px 12px;font-size:14px;border:1px solid var(--line);
+    border-radius:8px;outline:none;background:#f8fafc;
+  }
+  .search-row select{flex:1;min-width:180px;cursor:pointer;}
+  .search-row input{flex:1.5;min-width:200px;}
+  .search-row select:focus, .search-row input:focus{border-color:var(--accent);background:#fff;}
+
+  .tablebox{overflow-x:auto;margin-top:10px;-webkit-overflow-scrolling:touch;}
+  .collapsed{display:none;}
+  table{width:100%;border-collapse:collapse;min-width:520px;font-variant-numeric:tabular-nums;}
+  th,td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--line);font-size:13px;white-space:nowrap;}
+  th{color:var(--sub);font-weight:600;font-size:12px;}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;}
+  tbody tr{cursor:pointer;transition:background .12s;}
+  tbody tr:hover{background:#f0f9ff;}
+  tbody tr.sel{background:#e0f2fe;}
+  tbody tr.sel td:first-child{font-weight:700;color:var(--accent-d);}
+  .bar{height:6px;background:#e2e8f0;border-radius:3px;min-width:60px;overflow:hidden;}
+  .bar i{display:block;height:100%;background:var(--accent);border-radius:3px;}
+  .k{font-weight:600;}
+  .n{color:var(--sub);font-size:12px;}
+  .est{display:inline-block;font-size:10px;color:#b45309;background:#fef3c7;border:1px solid #fcd34d;border-radius:4px;padding:0 4px;margin-left:2px;vertical-align:middle;}
+  .empty{padding:18px;text-align:center;color:var(--sub);font-size:13px;}
+
+  .selmat{
+    background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;
+    padding:10px 12px;margin-bottom:12px;font-size:13px;
+  }
+  .selmat b{color:var(--accent-d);font-size:15px;}
+  .selmat .row{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:6px;}
+  .selmat span{color:var(--sub);}
+  .selmat span em{font-style:normal;color:var(--ink);font-weight:600;}
+
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  label{display:block;font-size:12px;color:var(--sub);margin-bottom:4px;}
+  input[type=number]{
+    width:100%;padding:9px 10px;font-size:16px;border:1px solid var(--line);
+    border-radius:8px;outline:none;background:#f8fafc;font-variant-numeric:tabular-nums;
+  }
+  input[type=number]:focus{border-color:var(--accent);background:#fff;}
+
+  .out4{
+    margin-top:12px;background:#0f172a;color:#fff;border-radius:10px;padding:8px 10px;
+    display:grid;grid-template-columns:repeat(2,1fr);row-gap:8px;column-gap:10px;text-align:center;
+  }
+  .out4 .item{display:flex;flex-direction:column;justify-content:center;padding:4px;}
+  .out4 .item:nth-child(1){border-right:1px solid rgba(255,255,255,0.1);border-bottom:1px solid rgba(255,255,255,0.1);}
+  .out4 .item:nth-child(2){border-bottom:1px solid rgba(255,255,255,0.1);}
+  .out4 .item:nth-child(3){border-right:1px solid rgba(255,255,255,0.1);}
+  .out4 .item:nth-child(4){}
+
+  .out4 .v{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;word-break:break-all;line-height:1.2;}
+  .out4 .l{font-size:10px;color:#94a3b8;margin-top:2px;}
+
+  .screw-box{
+    margin-top:10px;background:#e0f2fe;border:1px solid #38bdf8;border-radius:10px;padding:10px 14px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+  }
+  .screw-info{display:flex;flex-direction:column;}
+  .screw-label{font-size:12px;color:#0369a1;font-weight:700;}
+  .screw-sub{font-size:11px;color:#0284c7;margin-top:2px;}
+  .screw-val{font-size:22px;font-weight:800;color:#0c4a6e;font-variant-numeric:tabular-nums;}
+
+  .use-box{
+    margin-top:10px;background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px 14px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+  }
+  .use-info{display:flex;flex-direction:column;}
+  .use-label{font-size:12px;color:var(--sub);font-weight:600;}
+  .use-sub{font-size:11px;color:var(--sub);margin-top:2px;}
+  .use-val{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;}
+
+  .status-yellow{color:#ca8a04;}
+  .status-green{color:#16a34a;}
+  .status-red{color:#dc2626;}
+
+  .psstrip{margin-top:10px;background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:10px 14px;}
+  .ps-label{font-size:12px;color:#92400e;font-weight:600;}
+  .ps-val{font-size:22px;font-weight:800;color:#78350f;font-variant-numeric:tabular-nums;margin:2px 0;}
+  .ps-sub{font-size:11px;color:#92400e;line-height:1.4;}
+
+  .gauge{margin-top:10px;}
+  .gauge .bar{height:8px;position:relative;background:#e2e8f0;border-radius:4px;overflow:hidden;}
+  .gauge .bar i{display:block;height:100%;background:var(--accent);}
+  .gauge .marker{
+    position:absolute; top:-4px; width:5px; height:16px; background:#0f172a;
+    border:1px solid #ffffff; border-radius:3px; transform:translateX(-50%);
+    box-shadow: 0 0 4px rgba(0,0,0,0.5); z-index: 5;
+  }
+  .gauge .mtext{font-size:12px;margin-top:5px;font-weight:600;}
+
+  .note{font-size:12px;color:var(--sub);line-height:1.6;margin-top:10px;}
+  .note b{color:var(--ink);}
+  footer{
+    margin-top:18px;font-size:11px;color:#94a3b8;line-height:1.6;padding:0 4px;
+    display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;
+  }
+  footer .author{font-size:12px;font-weight:600;color:var(--accent-d);}
+
+  .pdf-btn{
+    margin-top:14px;width:100%;padding:12px;border:none;border-radius:10px;
+    background:#1e7e4d;color:#fff;font-size:15px;font-weight:600;cursor:pointer;
+    transition:background 0.2s;
+  }
+  .pdf-btn:hover{background:#155d38;}
+
+  @media (max-width:480px){
+    .grid{grid-template-columns:repeat(2,1fr);gap:8px;}
+    .search-row{flex-direction:column;align-items:stretch;}
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>注塑材料熔融密度速查</h1>
+  <p>选材料即算射胶体积 / 重量 / 推荐螺杆直径 · 30%–70% 黄金区间 · 离线可用</p>
+</header>
+
+<div class="wrap">
+  <section class="card">
+    <div class="search-row">
+      <select id="matSelect" aria-label="选择材料"></select>
+      <input id="search" class="search" type="search" placeholder="搜索过滤材料，如 PPS / PEI / PET-G / PA12 / PC…" autocomplete="off">
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 id="tableHeader">
+      <span>材料密度表 <span class="tag">点击行可选中为计算材料</span></span>
+      <span class="toggle-btn" id="toggleBtn">展开表格 ▼</span>
+    </h2>
+    <div class="tablebox collapsed" id="tableBox">
+      <table>
+        <thead>
+          <tr>
+            <th>材料</th>
+            <th class="num">室温密度</th>
+            <th class="num">熔融密度</th>
+            <th class="num">体积收缩率</th>
+            <th style="width:90px;">熔融密度对比</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div class="empty" id="empty" style="display:none;">没有匹配的材料</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>射胶量计算器 <span class="tag">输入单件重量、型腔数、流道重</span></h2>
+
+    <div class="selmat" id="selmat"></div>
+
+    <div class="grid">
+      <div>
+        <label for="wpart">单件制品重量（g）</label>
+        <input id="wpart" type="number" inputmode="decimal" value="100" min="0">
+      </div>
+      <div>
+        <label for="ncav">型腔数（腔）</label>
+        <input id="ncav" type="number" inputmode="numeric" value="1" min="1">
+      </div>
+      <div>
+        <label for="wrun">流道/冷料重量（g）</label>
+        <input id="wrun" type="number" inputmode="decimal" value="0" min="0">
+      </div>
+      <div>
+        <label for="wcap">机台额定射胶容积（cm³，可选）</label>
+        <input id="wcap" type="number" inputmode="decimal" placeholder="如 300" min="0">
+      </div>
+    </div>
+
+    <div class="out4">
+      <div class="item">
+        <div class="v" id="oTotal">—</div>
+        <div class="l">单次射胶总重量 (g)</div>
+      </div>
+      <div class="item">
+        <div class="v" id="oVol">—</div>
+        <div class="l">熔体体积 (cm³)</div>
+      </div>
+      <div class="item">
+        <div class="v" id="oUseInline">—</div>
+        <div class="l">机台利用率 (%)</div>
+      </div>
+      <div class="item">
+        <div class="v" id="oRange">—</div>
+        <div class="l">推荐机台射胶容积 (cm³，按本材料)</div>
+      </div>
+    </div>
+
+    <div class="screw-box">
+      <div class="screw-info">
+        <div class="screw-label">推荐机台螺杆直径（螺杆大小 D）</div>
+        <div class="screw-sub" id="screwNote">按最大射胶行程 S ≈ 4D & 30%–70% 区间理论推算</div>
+      </div>
+      <div class="screw-val" id="oScrew">—</div>
+    </div>
+
+    <div class="use-box">
+      <div class="use-info">
+        <div class="use-label">机台利用率状态评估（30%–70% 黄金区间）</div>
+        <div class="use-sub" id="useSub">未填写机台额定射胶容积时不显示</div>
+      </div>
+      <div class="use-val" id="oUse">—</div>
+    </div>
+
+    <div class="gauge" id="gauge" style="display:none;">
+      <div class="bar"><i></i><div class="marker" id="marker"></div></div>
+      <div class="mtext" id="mtext"></div>
+    </div>
+
+    <div class="psstrip">
+      <div class="ps-left">
+        <div class="ps-label">机台铭牌射胶量（PS 当量，选机看这个）</div>
+        <div class="ps-val" id="oPsRange">—</div>
+        <div class="ps-sub" id="psNote"></div>
+      </div>
+    </div>
+
+    <button class="pdf-btn" onclick="genPdfReport()">直接下载 PDF 报告</button>
+
+    <p class="note" style="margin-top:14px;">
+      <b>算法说明：</b><br>
+      1. <b>熔体体积：</b>射胶总重 ÷ 熔融密度中值；体积收缩率 =（室温密度 ÷ 熔融密度 − 1）× 100%。<br>
+      2. <b>推荐螺杆直径：</b>通用注塑机标准最大行程 S ≈ 4.0 D，额定容积 V ≈ π D³。结合 30%–70% 最佳利用率，导出推荐螺杆直径 D ≈ ∛(V / π)。
+    </p>
+  </section>
+
+  <footer>
+    <div>数据来源：思为客常用热塑性材料熔融密度表、Stelray 密度参考表、各树脂厂 TDS（加工温度下典型值，单位 g/cm³）。</div>
+    <div class="author">制作者：Ken</div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var DATA = [
+    {k:'PP',      n:'聚丙烯',                 s:0.90,  lo:0.712, hi:0.737},
+    {k:'PP+15%GF', n:'聚丙烯+15%玻纤',        s:1.04,  lo:0.82,  hi:0.86, est:true},
+    {k:'PP+30%GF', n:'聚丙烯+30%玻纤',       s:1.13,  lo:0.92,  hi:0.97, est:true},
+    {k:'LDPE',    n:'低密度聚乙烯',           s:0.92,  lo:0.73,  hi:0.74},
+    {k:'LLDPE',   n:'线性低密度聚乙烯',       s:0.92,  lo:0.72,  hi:0.752},
+    {k:'HDPE',    n:'高密度聚乙烯',           s:0.95,  lo:0.752, hi:0.772},
+    {k:'EVA',     n:'乙烯-醋酸乙烯共聚物',     s:0.94,  lo:0.789, hi:0.807},
+    {k:'GPPS',    n:'通用聚苯乙烯',           s:1.05,  lo:0.886, hi:0.910},
+    {k:'HIPS',    n:'高抗冲聚苯乙烯',         s:1.065, lo:0.895, hi:0.917},
+    {k:'ABS',     n:'丙烯腈-丁二烯-苯乙烯',   s:1.06,  lo:0.895, hi:0.908},
+    {k:'ASA',     n:'ASA',                   s:1.07,  lo:0.911, hi:0.911},
+    {k:'SAN',     n:'苯乙烯-丙烯腈',         s:1.085, lo:0.907, hi:0.917},
+    {k:'SB',      n:'K胶/苯乙烯-丁二烯共聚物', s:1.01,  lo:0.880, hi:0.920, est:true},
+    {k:'PPO',     n:'聚苯醚(PPE/PPO)',       s:1.06,  lo:0.920, hi:0.960, est:true},
+    {k:'PPO+30%GF', n:'PPO+30%玻纤',         s:1.27,  lo:1.100, hi:1.150, est:true},
+    {k:'CA',      n:'醋酸纤维素',             s:1.30,  lo:1.120, hi:1.180, est:true},
+    {k:'CAB',     n:'醋酸丁酸纤维素',         s:1.20,  lo:1.020, hi:1.080, est:true},
+    {k:'CP',      n:'丙酸纤维素',             s:1.22,  lo:1.040, hi:1.100, est:true},
+    {k:'PA6',     n:'尼龙6',                 s:1.155, lo:0.958, hi:0.995},
+    {k:'PA6+15%GF', n:'尼龙6+15%玻纤',       s:1.25,  lo:1.05,  hi:1.10, est:true},
+    {k:'PA6+40%GF', n:'尼龙6+40%玻纤',      s:1.48,  lo:1.22,  hi:1.28, est:true},
+    {k:'PA66',    n:'尼龙66',                s:1.155, lo:0.958, hi:0.995},
+    {k:'PA66+15%GF', n:'尼龙66+15%玻纤',    s:1.25,  lo:1.05,  hi:1.10, est:true},
+    {k:'PA66+30%GF', n:'尼龙66+30%玻纤',    s:1.35,  lo:1.119, hi:1.163},
+    {k:'PA66+40%GF', n:'尼龙66+40%玻纤',    s:1.48,  lo:1.22,  hi:1.28, est:true},
+    {k:'PA12',    n:'尼龙12',                s:1.02,  lo:0.900, hi:0.940, est:true},
+    {k:'TR90',    n:'透明尼龙(记忆塑料)',     s:1.02,  lo:0.910, hi:0.950, est:true},
+    {k:'PMMA',    n:'亚克力(聚甲基丙烯酸甲酯)', s:1.18, lo:0.94,  hi:1.04},
+    {k:'TPE',     n:'热塑性弹性体',           s:1.08,  lo:1.00,  hi:1.00},
+    {k:'TPU',     n:'热塑性聚氨酯',           s:1.16,  lo:1.08,  hi:1.12, est:true},
+    {k:'PC',      n:'聚碳酸酯',               s:1.215, lo:1.018, hi:1.037},
+    {k:'PC+30%GF', n:'聚碳酸酯+30%玻纤',      s:1.425, lo:1.068, hi:1.087},
+    {k:'PC+40%GF', n:'聚碳酸酯+40%玻纤',      s:1.52,  lo:1.320, hi:1.380, est:true},
+    {k:'PETG',    n:'PET-G 共聚聚酯',         s:1.27,  lo:1.100, hi:1.150, est:true},
+    {k:'PCTG',    n:'共聚聚酯',               s:1.24,  lo:1.08,  hi:1.08},
+    {k:'PSU',     n:'聚砜',                  s:1.24,  lo:1.036, hi:1.050},
+    {k:'PPSU',    n:'聚苯砜',                s:1.29,  lo:1.08,  hi:1.12, est:true},
+    {k:'PEI',     n:'聚醚酰亚胺(Ultem)',      s:1.27,  lo:1.140, hi:1.180, est:true},
+    {k:'PES',     n:'聚醚砜',                s:1.37,  lo:1.200, hi:1.250, est:true},
+    {k:'LCP',     n:'液晶高分子(LCP)',        s:1.65,  lo:1.400, hi:1.480, est:true},
+    {k:'PBT',     n:'聚对苯二甲酸丁二醇酯',   s:1.31,  lo:1.102, hi:1.113},
+    {k:'PBT+15%GF', n:'PBT+15%玻纤',         s:1.45,  lo:1.20,  hi:1.25, est:true},
+    {k:'PBT+30%GF', n:'PBT+30%玻纤',         s:1.52,  lo:1.28,  hi:1.33, est:true},
+    {k:'PET',     n:'聚对苯二甲酸乙二醇酯',   s:1.275, lo:1.068, hi:1.087},
+    {k:'UPVC',    n:'硬聚氯乙烯(未增塑)',     s:1.39,  lo:1.134, hi:1.219},
+    {k:'POM-CO',  n:'聚甲醛(共聚)',          s:1.41,  lo:1.187, hi:1.197},
+    {k:'POM-H',   n:'聚甲醛(均聚)',          s:1.425, lo:1.196, hi:1.214},
+    {k:'PEEK',    n:'聚醚醚酮',              s:1.305, lo:1.094, hi:1.113},
+    {k:'CPVC',    n:'氯化聚氯乙烯',           s:1.55,  lo:1.28,  hi:1.35, est:true},
+    {k:'PPS',     n:'聚苯硫醚(纯树脂)',       s:1.35,  lo:1.150, hi:1.200, est:true},
+    {k:'PPS+15%GF', n:'聚苯硫醚+15%玻纤',    s:1.38,  lo:1.15,  hi:1.20, est:true},
+    {k:'PPS+30%GF', n:'聚苯硫醚+30%玻纤',    s:1.48,  lo:1.22,  hi:1.28, est:true},
+    {k:'PPS+40%GF', n:'聚苯硫醚+40%玻纤',    s:1.60,  lo:1.327, hi:1.364},
+    {k:'ETFE',    n:'乙烯-四氟乙烯共聚物',     s:1.70,  lo:1.450, hi:1.520, est:true},
+    {k:'FEP',     n:'氟化乙烯丙烯共聚物',     s:2.15,  lo:1.780, hi:1.850, est:true},
+    {k:'PVDF',    n:'聚偏氟乙烯',             s:1.78,  lo:1.500, hi:1.580, est:true},
+    {k:'PFA',     n:'可熔性聚四氟乙烯',       s:2.15,  lo:1.83,  hi:1.87, est:true}
+  ];
+
+  var MID = DATA.map(function(d){ return (d.lo+d.hi)/2; });
+  var MAXM = Math.max.apply(null, MID);
+  var sel = DATA.findIndex(function(d){ return d.k==='PC'; });
+  if (sel === -1) sel = 0;
+
+  var tbody = document.getElementById('tbody');
+  var tableBox = document.getElementById('tableBox');
+  var toggleBtn = document.getElementById('toggleBtn');
+  var tableHeader = document.getElementById('tableHeader');
+  var matSelect = document.getElementById('matSelect');
+  var searchInput = document.getElementById('search');
+
+  function shrink(i){ return (DATA[i].s / MID[i] - 1) * 100; }
+
+  function updateSelectOptions(filterText){
+    filterText = (filterText || '').trim().toLowerCase();
+    matSelect.innerHTML = '';
+    var count = 0;
+    DATA.forEach(function(d, i){
+      if(!filterText || (d.k + ' ' + d.n).toLowerCase().indexOf(filterText) !== -1){
+        var opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = d.k + (d.n ? ' (' + d.n + ')' : '');
+        if(i === sel) opt.selected = true;
+        matSelect.appendChild(opt);
+        count++;
+      }
+    });
+  }
+
+  function setCollapsed(collapsed){
+    if(collapsed){
+      tableBox.classList.add('collapsed');
+      toggleBtn.textContent = '展开表格 ▼';
+    } else {
+      tableBox.classList.remove('collapsed');
+      toggleBtn.textContent = '收起表格 ▲';
+    }
+  }
+
+  tableHeader.addEventListener('click', function(){
+    setCollapsed(!tableBox.classList.contains('collapsed'));
+  });
+
+  function render(filter){
+    filter = (filter||'').trim().toLowerCase();
+    tbody.innerHTML = '';
+    var shown = 0;
+    DATA.forEach(function(d,i){
+      if(filter && (d.k+' '+d.n).toLowerCase().indexOf(filter)===-1) return;
+      shown++;
+      var tr = document.createElement('tr');
+      if(i===sel) tr.className = 'sel';
+      var pct = Math.round(MID[i]/MAXM*100);
+      var estBadge = d.est ? ' <span class="est">估</span>' : '';
+      tr.innerHTML =
+        '<td><span class="k">'+d.k+'</span> <span class="n">'+d.n+'</span></td>'+
+        '<td class="num">'+d.s.toFixed(3)+'</td>'+
+        '<td class="num">'+d.lo.toFixed(3)+' – '+d.hi.toFixed(3)+estBadge+'</td>'+
+        '<td class="num">'+shrink(i).toFixed(1)+'%</td>'+
+        '<td><div class="bar"><i style="width:'+pct+'%"></i></div></td>';
+      (function(idx){
+        tr.addEventListener('click', function(){ sel=idx; matSelect.value=idx; render(searchInput.value); calc(); });
+      })(i);
+      tbody.appendChild(tr);
+    });
+    document.getElementById('empty').style.display = shown? 'none':'block';
+  }
+
+  function calc(){
+    var d = DATA[sel], m = MID[sel];
+    var wpart = parseFloat(document.getElementById('wpart').value)||0;
+    var ncav = parseFloat(document.getElementById('ncav').value)||1;
+    var wrun = parseFloat(document.getElementById('wrun').value)||0;
+    var wcap = parseFloat(document.getElementById('wcap').value)||0;
+
+    var total = wpart*ncav + wrun;
+    var vol = total/m;
+
+    document.getElementById('selmat').innerHTML =
+      '<b>'+d.k+'</b> <span class="n">'+d.n+'</span>'+
+      '<div class="row">'+
+        '<span>熔融密度 <em>'+m.toFixed(3)+' g/cm³</em></span>'+
+        '<span>室温密度 <em>'+d.s.toFixed(3)+' g/cm³</em></span>'+
+        '<span>体积收缩率 <em>'+shrink(sel).toFixed(1)+'%</em></span>'+
+      '</div>';
+
+    document.getElementById('oTotal').textContent = total.toFixed(1);
+    document.getElementById('oVol').textContent = vol.toFixed(1);
+
+    if(vol>0){
+      var loCap = vol/0.70, hiCap = vol/0.30;
+      document.getElementById('oRange').textContent = loCap.toFixed(0)+' – '+hiCap.toFixed(0);
+
+      var dLo = Math.cbrt(loCap / Math.PI) * 10;
+      var dHi = Math.cbrt(hiCap / Math.PI) * 10;
+      document.getElementById('oScrew').textContent = 'Φ' + dLo.toFixed(0) + ' – Φ' + dHi.toFixed(0) + ' mm';
+
+      var psIdx = DATA.findIndex(function(x){ return x.k==='GPPS'; });
+      var psRho = MID[psIdx];
+      var psEq = vol * psRho;
+      document.getElementById('oPsRange').textContent = (psEq/0.70).toFixed(0)+' – '+(psEq/0.30).toFixed(0);
+      document.getElementById('psNote').innerHTML = 'PS 当量 '+psEq.toFixed(1)+' g，按 30%–70% 反推机台铭牌射胶量。';
+    } else {
+      document.getElementById('oRange').textContent = '—';
+      document.getElementById('oScrew').textContent = '—';
+      document.getElementById('oPsRange').textContent = '—';
+      document.getElementById('psNote').textContent = '';
+    }
+
+    if(wcap>0){
+      var use = vol/wcap*100;
+      var statusClass = use<30?'status-yellow':(use<=70?'status-green':'status-red');
+      var useStr = use.toFixed(1) + '%';
+      var alertText = use<30?'利用率偏低（<30%）：易降解/黄变':(use<=70?'利用率合理（30%–70%）：最佳黄金区间':'利用率偏高（>70%）：机器接近上限');
+
+      var oUseEl = document.getElementById('oUse');
+      oUseEl.className = 'use-val ' + statusClass;
+      oUseEl.textContent = useStr;
+
+      var oUseInlineEl = document.getElementById('oUseInline');
+      oUseInlineEl.className = 'v ' + statusClass;
+      oUseInlineEl.textContent = useStr;
+
+      document.getElementById('useSub').textContent = '推荐区间: 30% – 70%';
+      document.getElementById('gauge').style.display = 'block';
+      document.getElementById('marker').style.left = Math.min(use,100)+'%';
+      var mt = document.getElementById('mtext');
+      mt.style.color = use<30?'var(--warn)':(use<=70?'var(--ok)':'var(--bad)');
+      mt.textContent = alertText;
+    } else {
+      document.getElementById('oUse').className = 'use-val';
+      document.getElementById('oUse').textContent = '—';
+      document.getElementById('oUseInline').className = 'v';
+      document.getElementById('oUseInline').textContent = '—';
+      document.getElementById('useSub').textContent = '填入机台额定射胶容积后计算';
+      document.getElementById('gauge').style.display = 'none';
+    }
+  }
+
+  matSelect.addEventListener('change', function(){
+    if(this.value !== ''){ sel = parseInt(this.value,10); render(searchInput.value); calc(); }
+  });
+
+  searchInput.addEventListener('input', function(){
+    if(this.value.trim().length>0) setCollapsed(false);
+    updateSelectOptions(this.value);
+    render(this.value);
+    calc();
+  });
+
+  ['wpart','ncav','wrun','wcap'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', calc);
+  });
+
+  updateSelectOptions('');
+  render('');
+  calc();
+})();
+</script>
+
+<script>
+function gv(id){
+  var e = document.getElementById(id);
+  if(!e) return '—';
+  if(e.tagName==='INPUT'||e.tagName==='SELECT'){return (e.value||'').trim()||'—';}
+  return (e.textContent||'').trim()||'—';
+}
+
+function wrapText(ctx,text,x,y,maxW,lineH,maxLines,center){
+  var lines=[],cur='';
+  for(var i=0;i<text.length;i++){
+    var ch=text.charAt(i);
+    var test=cur+ch;
+    if(ctx.measureText(test).width>maxW&&cur!==''){lines.push(cur);cur=ch;if(lines.length>=maxLines){break;}}
+    else{cur=test;}
+  }
+  if(lines.length<maxLines&&cur!==''){lines.push(cur);}
+  var n=lines.length;
+  var startY=center?(y-(n-1)*lineH/2):y;
+  for(var j=0;j<n;j++){ctx.fillText(lines[j],x,startY+j*lineH);}
+  return n*lineH;
+}
+
+function drawTable(ctx,x,y,rows,colW,rowH){
+  for(var i=0;i<rows.length;i++){
+    var ry=y+i*rowH;
+    var cells=rows[i];
+    ctx.strokeStyle='#d7dde5';ctx.lineWidth=2;
+    for(var c=0;c<cells.length;c++){
+      var cx=x+(c===0?0:colW[0]);
+      var cw=colW[c];
+      if(c===0){ctx.fillStyle='#f5f7fa';ctx.fillRect(cx,ry,cw,rowH);}
+      ctx.strokeRect(cx,ry,cw,rowH);
+    }
+    ctx.fillStyle='#1a1b1c';
+    ctx.font='400 28px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textBaseline='middle';
+    ctx.fillText(cells[0],x+18,ry+rowH/2,colW[0]-30);
+    if(cells[2]){ctx.fillStyle='#b45309';ctx.font='700 30px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';}
+    else{ctx.fillStyle='#1a1b1c';ctx.font='600 28px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';}
+    wrapText(ctx,cells[1],x+colW[0]+18,ry+rowH/2,colW[1]-36,34,2,true);
+  }
+  return y+rows.length*rowH;
+}
+
+function genPdfReport(){
+  var W=1240,H=1754;
+  var c=document.createElement('canvas');
+  c.width=W;c.height=H;
+  var ctx=c.getContext('2d');
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+  ctx.textBaseline='middle';
+  var f='-apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+  var now=new Date();
+  var ds=now.getFullYear()+'-'+(now.getMonth()+1)+'-'+now.getDate()+' '+(now.getHours()<10?'0':'')+now.getHours()+':'+(now.getMinutes()<10?'0':'')+now.getMinutes();
+  
+  var selEl=document.getElementById('matSelect');
+  var mname=selEl&&selEl.selectedOptions&&selEl.selectedOptions.length?selEl.selectedOptions[0].textContent:'—';
+  
+  var X=90,CW=1060,colW2=[380,680];
+  ctx.fillStyle='#0c4a5e';ctx.font='700 46px '+f;
+  ctx.textAlign='center';ctx.fillText('注塑材料熔融密度与注塑机选型报告',W/2,110);
+  ctx.fillStyle='#6b7280';ctx.font='400 26px '+f;
+  ctx.fillText('生成时间：'+ds,W/2,168);
+  ctx.strokeStyle='#0c4a5e';ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(X,205);ctx.lineTo(W-X,205);ctx.stroke();
+  
+  ctx.textAlign='left';
+  ctx.fillStyle='#0c4a5e';ctx.font='700 32px '+f;
+  ctx.fillText('一、基础输入参数',X,258);
+  
+  var y=drawTable(ctx,X,300,[
+    ['选中材料',mname],
+    ['单件制品重量（g）',gv('wpart')],
+    ['型腔数（腔）',gv('ncav')],
+    ['流道/冷料重量（g）',gv('wrun')],
+    ['机台额定射胶容积（cm³）',gv('wcap')]
+  ],colW2,52);
+  
+  ctx.fillStyle='#0c4a5e';ctx.font='700 32px '+f;
+  y+=54;ctx.fillText('二、计算结果与评估',X,y);y+=42;
+  
+  y=drawTable(ctx,X,y,[
+    ['单次射胶总重量 (g)',gv('oTotal')+' g'],
+    ['熔体体积 (cm³)',gv('oVol')+' cm³'],
+    ['机台利用率 (%)',gv('oUseInline')],
+    ['推荐机台射胶容积 (cm³)',gv('oRange')+' cm³'],
+    ['推荐机台螺杆直径',gv('oScrew')],
+    ['机台铭牌射胶量 (PS当量)',gv('oPsRange')+' g']
+  ],colW2,52);
+  
+  y+=30;
+  ctx.fillStyle='#fafbfc';ctx.fillRect(X,y,CW,96);
+  ctx.strokeStyle='#e8ecf1';ctx.lineWidth=2;ctx.strokeRect(X,y,CW,96);
+  ctx.fillStyle='#555';ctx.font='400 25px '+f;
+  ctx.textBaseline='top';
+  wrapText(ctx,'评估说明：黄金利用率区间为 30%–70%，请结合上述推荐机台射胶容积及螺杆直径合理匹配设备。',X+24,y+18,CW-48,34,2);
+  
+  var fy=y+96+50;
+  ctx.fillStyle='#8a8f98';ctx.font='400 24px '+f;
+  ctx.textAlign='center';
+  wrapText(ctx,'本报告由「注塑材料熔融密度与注塑机选型计算器」生成 · 结果仅供参考，精密模具与选型请以实际试模及设备厂商规格为准',W/2,fy,CW,32,2);
+  
+  ctx.fillStyle='#0c4a5e';ctx.font='700 26px '+f;
+  ctx.fillText('制作者：Ken',W/2,fy+80);
+  
+  ctx.textAlign='left';
+  var jpeg=c.toDataURL('image/jpeg',0.92);
+  var pdf=buildPdf(jpeg.split(',')[1],W,H);
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(pdf);
+  a.download='注塑材料熔融密度与选型报告.pdf';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},4000);
+}
+
+function buildPdf(jpegB64,imgW,imgH){
+  var bin = atob(jpegB64);
+  var bytes = new Uint8Array(bin.length);
+  for(var i=0; i<bin.length; i++){ bytes[i] = bin.charCodeAt(i); }
+  var pageW = 595, pageH = 842;
+  var enc = function(str){
+    var u = new Uint8Array(str.length);
+    for(var k=0; k<str.length; k++){ u[k] = str.charCodeAt(k) & 255; }
+    return u;
+  };
+  var o1 = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
+  var o2 = "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n";
+  var o3 = "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + pageW + " " + pageH + "] /Resources << /XObject << /Im0 5 0 R >> /ProcSet [/PDF /ImageC] >> /Contents 4 0 R >>\nendobj\n";
+  var content = "q " + pageW + " 0 0 " + pageH + " 0 0 cm /Im0 Do Q";
+  var o4 = "4 0 obj\n<< /Length " + content.length + " >>\nstream\n" + content + "\nendstream\nendobj\n";
+  var o5h = "5 0 obj\n<< /Type /XObject /Subtype /Image /Width " + imgW + " /Height " + imgH + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + bytes.length + " >>\nstream\n";
+  var o5t = "\nendstream\nendobj\n";
+  
+  var chunks = [enc("%PDF-1.4\n")];
+  var pos = enc("%PDF-1.4\n").length;
+  var offsets = [0,0,0,0,0,0];
+  var objs = [o1, o2, o3, o4];
+  
+  for(var n=1; n<=4; n++){
+    offsets[n] = pos;
+    var u = enc(objs[n-1]);
+    chunks.push(u);
+    pos += u.length;
+  }
+  offsets[5] = pos;
+  var u5h = enc(o5h);
+  chunks.push(u5h);
+  pos += u5h.length;
+  
+  chunks.push(bytes);
+  pos += bytes.length;
+  
+  var u5t = enc(o5t);
+  chunks.push(u5t);
+  pos += u5t.length;
+  
+  var xrefPos = pos;
+  var xref = "xref\n0 6\n0000000000 65535 f \n";
+  for(var m=1; m<=5; m++){
+    xref += ("0000000000" + offsets[m]).slice(-10) + " 00000 n \n";
+  }
+  var trailer = "trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n" + xrefPos + "\n%%EOF\n";
+  chunks.push(enc(xref + trailer));
+  
+  var total = 0;
+  for(var q=0; q<chunks.length; q++){ total += chunks[q].length; }
+  var res = new Uint8Array(total);
+  var p = 0;
+  for(var r=0; r<chunks.length; r++){
+    res.set(chunks[r], p);
+    p += chunks[r].length;
+  }
+  return new Blob([res], {type: 'application/pdf'});
+}
+</script>
+
+</body>
+</html>
